@@ -85,7 +85,7 @@
             android:layout_marginStart="10dp"
             android:hint="Rechercher une conversation"
             android:textColor="@color/text_dark"
-            android:hintTextColor="@color/text_muted"
+            android:textColorHint="@color/text_muted"
             android:textSize="14sp"
             android:singleLine="true"
             android:background="@android:color/transparent"

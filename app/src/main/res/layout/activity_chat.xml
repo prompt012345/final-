@@ -93,7 +93,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:hint="Écrire un message…"
-                android:hintTextColor="#686868"
+                android:textColorHint="#686868"
                 android:textColor="@color/text_dark"
                 android:textSize="15sp"
                 android:singleLine="true"
