@@ -3,17 +3,34 @@ package com.bubblesms.app
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.bubblesms.app.data.PrefsManager
+import com.google.android.material.imageview.ShapeableImageView
 
 class PseudoSetupActivity : AppCompatActivity() {
+
+    private lateinit var avatarView: ShapeableImageView
+
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            val path = PrefsManager.saveProfilePicture(this, it)
+            if (path != null) {
+                avatarView.setImageDrawable(null)
+                avatarView.setImageURI(Uri.fromFile(java.io.File(path)))
+            } else {
+                Toast.makeText(this, "Impossible de charger cette image", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     private val permissions = mutableListOf(
         Manifest.permission.SEND_SMS,
@@ -40,6 +57,11 @@ class PseudoSetupActivity : AppCompatActivity() {
         setContentView(R.layout.activity_pseudo_setup)
         val input = findViewById<EditText>(R.id.editPseudo)
         val button = findViewById<Button>(R.id.buttonContinue)
+        avatarView = findViewById(R.id.imageProfile)
+
+        avatarView.setOnClickListener {
+            pickImage.launch("image/*")
+        }
 
         button.setOnClickListener {
             val pseudo = input.text.toString().trim()

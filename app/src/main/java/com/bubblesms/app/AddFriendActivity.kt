@@ -1,11 +1,13 @@
 package com.bubblesms.app
 
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.telephony.SmsManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.bubblesms.app.data.Friend
 import com.bubblesms.app.data.PrefsManager
 
@@ -25,6 +27,11 @@ class AddFriendActivity : AppCompatActivity() {
 
             if (phone.isEmpty() || pseudo.isEmpty()) {
                 Toast.makeText(this, "Remplis le numéro et le pseudo", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Autorise l'envoi de SMS dans les paramètres du téléphone pour ajouter un ami", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 

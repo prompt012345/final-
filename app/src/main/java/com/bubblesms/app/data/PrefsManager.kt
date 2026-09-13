@@ -1,6 +1,8 @@
 package com.bubblesms.app.data
 
 import android.content.Context
+import android.net.Uri
+import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -15,10 +17,43 @@ object PrefsManager {
     private const val KEY_FRIENDS = "friends"
     private const val KEY_REQUESTS = "pending_requests"
     private const val KEY_MSG_PREFIX = "messages_"
+    private const val KEY_PROFILE_PIC = "profile_picture_path"
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun normalizePhone(phone: String): String = phone.replace(" ", "").replace("-", "").trim()
+    /**
+     * Normalise un numéro pour comparaison/stockage : ne garde que les chiffres,
+     * et convertit les formats internationaux français (+33 / 0033) vers le format
+     * local (0X XX XX XX XX) pour que le numéro saisi manuellement (souvent en 0X...)
+     * et celui reçu dans un SMS (souvent en +33...) soient reconnus comme identiques.
+     * Sans ça, les messages/amis pouvaient ne jamais se faire correspondre.
+     */
+    fun normalizePhone(phone: String): String {
+        val hadPlus = phone.trim().startsWith("+")
+        val digits = phone.filter { it.isDigit() }
+        return when {
+            hadPlus && digits.startsWith("33") -> "0" + digits.substring(2)
+            digits.startsWith("0033") -> "0" + digits.substring(4)
+            else -> digits
+        }
+    }
+
+    // ---- Photo de profil ----
+    fun getProfilePicturePath(ctx: Context): String? = prefs(ctx).getString(KEY_PROFILE_PIC, null)
+
+    /** Copie l'image choisie dans le stockage privé de l'appli et retourne son chemin. */
+    fun saveProfilePicture(ctx: Context, uri: Uri): String? {
+        return try {
+            val file = File(ctx.filesDir, "profile.jpg")
+            ctx.contentResolver.openInputStream(uri)?.use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+            prefs(ctx).edit().putString(KEY_PROFILE_PIC, file.absolutePath).apply()
+            file.absolutePath
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     // ---- Pseudo perso ----
     fun getMyPseudo(ctx: Context): String? = prefs(ctx).getString(KEY_PSEUDO, null)

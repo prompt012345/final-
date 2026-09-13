@@ -20,8 +20,8 @@
         android:layout_height="wrap_content"
         android:hint="Numéro de téléphone"
         android:inputType="phone"
-        android:padding="14dp"
-        android:background="@drawable/bubble_received"
+        android:padding="16dp"
+        android:background="@drawable/rounded_input_bg"
         android:layout_marginBottom="14dp" />
 
     <EditText
@@ -30,8 +30,8 @@
         android:layout_height="wrap_content"
         android:hint="Pseudo à lui donner"
         android:inputType="text"
-        android:padding="14dp"
-        android:background="@drawable/bubble_received"
+        android:padding="16dp"
+        android:background="@drawable/rounded_input_bg"
         android:layout_marginBottom="20dp" />
 
     <Button

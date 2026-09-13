@@ -15,6 +15,7 @@ class FriendAdapter(
     class VH(view: View) : RecyclerView.ViewHolder(view) {
         val pseudo: TextView = view.findViewById(R.id.itemPseudo)
         val status: TextView = view.findViewById(R.id.itemStatus)
+        val avatar: TextView = view.findViewById(R.id.itemAvatar)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -26,6 +27,7 @@ class FriendAdapter(
         val friend = items[position]
         holder.pseudo.text = friend.pseudo
         holder.status.text = if (friend.confirmed) "" else "En attente d'acceptation…"
+        holder.avatar.text = friend.pseudo.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
         holder.itemView.setOnClickListener { onClick(friend) }
     }
 

@@ -4,12 +4,15 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.telephony.SmsManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -52,6 +55,11 @@ class ChatActivity : AppCompatActivity() {
         sendButton.setOnClickListener {
             val text = input.text.toString().trim()
             if (text.isEmpty()) return@setOnClickListener
+
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Autorise l'envoi de SMS dans les paramètres du téléphone", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
 
             val myPseudo = PrefsManager.getMyPseudo(this) ?: "Moi"
             val fullBody = "BUB::MSG::$myPseudo::$text"
