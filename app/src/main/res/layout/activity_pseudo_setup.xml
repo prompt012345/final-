@@ -5,60 +5,60 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="32dp"
+    android:padding="28dp"
     android:background="@color/background">
-
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/imageProfile"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
-        android:layout_marginBottom="16dp"
+        android:layout_width="104dp"
+        android:layout_height="104dp"
+        android:layout_marginBottom="14dp"
         android:scaleType="centerCrop"
         android:background="@drawable/avatar_placeholder"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.BubbleSMS.Circle"
-        app:strokeColor="@color/accent"
+        app:strokeColor="#FFFFFF"
         app:strokeWidth="2dp" />
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Touche l'avatar pour choisir une photo"
+        android:text="Ajouter une photo"
         android:textSize="12sp"
-        android:textColor="#999999"
-        android:layout_marginBottom="24dp" />
-
+        android:textColor="@color/text_muted"
+        android:layout_marginBottom="28dp" />
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Bienvenue sur BubbleSMS"
-        android:textSize="24sp"
+        android:textSize="27sp"
         android:textStyle="bold"
         android:textColor="@color/text_dark"
         android:layout_marginBottom="8dp" />
-
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Choisis ton pseudo, il sera visible par tes amis"
+        android:gravity="center"
+        android:text="Un espace simple et privé pour parler avec tes amis."
         android:textSize="14sp"
+        android:textColor="@color/text_muted"
         android:layout_marginBottom="24dp" />
-
     <EditText
         android:id="@+id/editPseudo"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:hint="Ton pseudo"
+        android:hintTextColor="#686868"
+        android:textColor="@color/text_dark"
         android:inputType="text"
-        android:padding="14dp"
+        android:paddingStart="17dp"
+        android:paddingEnd="17dp"
         android:background="@drawable/rounded_input_bg"
-        android:layout_marginBottom="16dp" />
-
+        android:layout_marginBottom="12dp" />
     <Button
         android:id="@+id/buttonContinue"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Continuer"
-        android:backgroundTint="@color/accent"
-        android:textColor="#FFFFFF" />
-
+        android:layout_height="54dp"
+        android:text="Commencer"
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:backgroundTint="#F4F4F4"
+        android:textColor="#111111" />
 </LinearLayout>

@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bubble_sent">#4F8EF7</color>
-    <color name="bubble_received">#E8E8ED</color>
-    <color name="background">#FAFAFC</color>
-    <color name="accent">#4F8EF7</color>
-    <color name="text_dark">#1C1C1E</color>
+    <color name="background">#090909</color>
+    <color name="surface">#111111</color>
+    <color name="surface_2">#171717</color>
+    <color name="surface_3">#202020</color>
+    <color name="bubble_sent">#F2F2F2</color>
+    <color name="bubble_received">#1B1B1B</color>
+    <color name="accent">#FFFFFF</color>
+    <color name="text_dark">#F5F5F5</color>
+    <color name="text_muted">#8C8C8C</color>
+    <color name="divider">#242424</color>
 </resources>

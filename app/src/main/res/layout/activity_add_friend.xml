@@ -3,43 +3,55 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp"
+    android:padding="22dp"
     android:background="@color/background">
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Ajouter un ami"
-        android:textSize="22sp"
+        android:textSize="28sp"
         android:textStyle="bold"
-        android:layout_marginBottom="20dp" />
-
+        android:textColor="@color/text_dark"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="6dp" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Le numéro sert uniquement à établir la première connexion."
+        android:textSize="13sp"
+        android:textColor="@color/text_muted"
+        android:layout_marginBottom="24dp" />
     <EditText
         android:id="@+id/editPhone"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:hint="Numéro de téléphone"
+        android:hintTextColor="#686868"
+        android:textColor="@color/text_dark"
         android:inputType="phone"
-        android:padding="16dp"
+        android:paddingStart="17dp"
+        android:paddingEnd="17dp"
         android:background="@drawable/rounded_input_bg"
-        android:layout_marginBottom="14dp" />
-
+        android:layout_marginBottom="12dp" />
     <EditText
         android:id="@+id/editFriendPseudo"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Pseudo à lui donner"
+        android:layout_height="56dp"
+        android:hint="Pseudo de ton ami"
+        android:hintTextColor="#686868"
+        android:textColor="@color/text_dark"
         android:inputType="text"
-        android:padding="16dp"
+        android:paddingStart="17dp"
+        android:paddingEnd="17dp"
         android:background="@drawable/rounded_input_bg"
-        android:layout_marginBottom="20dp" />
-
+        android:layout_marginBottom="18dp" />
     <Button
         android:id="@+id/buttonSendRequest"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="54dp"
         android:text="Envoyer la demande"
-        android:backgroundTint="@color/accent"
-        android:textColor="#FFFFFF" />
-
+        android:textAllCaps="false"
+        android:textStyle="bold"
+        android:backgroundTint="#F4F4F4"
+        android:textColor="#111111" />
 </LinearLayout>

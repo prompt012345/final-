@@ -26,6 +26,9 @@
         <activity android:name=".ContactsActivity" android:exported="false" />
         <activity android:name=".AddFriendActivity" android:exported="false" />
         <activity android:name=".ChatActivity" android:exported="false" />
+        <activity android:name=".GroupCreateActivity" android:exported="false" />
+        <activity android:name=".GroupChatActivity" android:exported="false" />
+        <activity android:name=".SettingsActivity" android:exported="false" />
 
         <receiver
             android:name=".SmsReceiver"

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/background">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+  <TextView android:text="Nouveau groupe" android:textColor="@color/text_dark" android:textSize="30sp" android:textStyle="bold" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+  <TextView android:text="Crée un espace privé avec tes amis." android:textColor="@color/text_muted" android:textSize="14sp" android:layout_marginTop="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+  <EditText android:id="@+id/editGroupName" android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="24dp" android:hint="Nom du groupe" android:textColor="@color/text_dark" android:textColorHint="@color/text_muted" android:background="@drawable/rounded_input_bg" android:paddingHorizontal="18dp"/>
+  <TextView android:text="Membres" android:textColor="@color/text_dark" android:textStyle="bold" android:textSize="15sp" android:layout_marginTop="24dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+  <LinearLayout android:id="@+id/membersList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="8dp"/>
+  <Button android:id="@+id/buttonCreateGroup" android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="24dp" android:text="Créer le groupe" android:textColor="#000000" android:backgroundTint="#F2F2F2"/>
+ </LinearLayout>
+</ScrollView>

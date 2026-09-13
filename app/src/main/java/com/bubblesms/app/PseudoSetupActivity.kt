@@ -49,8 +49,15 @@ class PseudoSetupActivity : AppCompatActivity() {
         val existing = PrefsManager.getMyPseudo(this)
         if (existing != null) {
             requestPermissionsIfNeeded()
-            startActivity(Intent(this, ContactsActivity::class.java))
-            finish()
+            val pin = PrefsManager.getAppPin(this)
+            if (!pin.isNullOrBlank()) {
+                val input = android.widget.EditText(this).apply { inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD; hint = "Code PIN" }
+                androidx.appcompat.app.AlertDialog.Builder(this).setTitle("BubbleSMS verrouillé").setMessage("Entre ton code pour continuer.").setView(input).setCancelable(false).setPositiveButton("Déverrouiller") { _, _ ->
+                    if (input.text.toString() == pin) { startActivity(Intent(this, ContactsActivity::class.java)); finish() } else Toast.makeText(this, "Code incorrect", Toast.LENGTH_SHORT).show()
+                }.show()
+            } else {
+                startActivity(Intent(this, ContactsActivity::class.java)); finish()
+            }
             return
         }
 

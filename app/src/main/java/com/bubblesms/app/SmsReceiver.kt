@@ -40,12 +40,15 @@ class SmsReceiver : BroadcastReceiver() {
         when {
             fullBody.startsWith(PREFIX_REQ) -> handleRequest(context, sender, fullBody)
             fullBody.startsWith(PREFIX_ACC) -> handleAccept(context, sender, fullBody)
+            fullBody.startsWith("BUB::GNEW::") -> handleGroupNew(context, sender, fullBody)
+            fullBody.startsWith("BUB::GRP::") -> handleGroupMessage(context, sender, fullBody)
             fullBody.startsWith(PREFIX_MSG) -> handleMessage(context, sender, fullBody)
             else -> { /* SMS classique hors app : on ne s'en occupe pas */ }
         }
     }
 
     private fun handleRequest(context: Context, sender: String, body: String) {
+        if (PrefsManager.isBlocked(context, sender)) return
         val theirPseudo = body.removePrefix(PREFIX_REQ)
         val friend = Friend(sender, theirPseudo, confirmed = false)
         PrefsManager.addPendingRequest(context, friend)
@@ -53,12 +56,39 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun handleAccept(context: Context, sender: String, body: String) {
+        if (PrefsManager.isBlocked(context, sender)) return
         val theirPseudo = body.removePrefix(PREFIX_ACC)
         PrefsManager.confirmFriend(context, sender, theirPseudo)
         notify(context, "Ami confirmé", "$theirPseudo a accepté ta demande")
     }
 
+    private fun handleGroupNew(context: Context, sender: String, body: String) {
+        if (PrefsManager.isBlocked(context, sender)) return
+        val parts = body.split("::", limit = 6)
+        if (parts.size < 6) return
+        val id = parts[2]; val name = parts[3]; val creator = parts[4]; val rawMembers = parts[5]
+        val members = mutableListOf(Friend(sender, creator, true))
+        if (rawMembers.isNotBlank()) rawMembers.split("|").forEach { item ->
+            val x=item.split("~", limit=2); if(x.size==2 && members.none{PrefsManager.normalizePhone(it.phone)==PrefsManager.normalizePhone(x[0])}) members.add(Friend(x[0],x[1],true))
+        }
+        PrefsManager.saveGroup(context, com.bubblesms.app.data.Group(id,name,members,sender))
+        notify(context, "Nouveau groupe", "Tu as été ajouté à $name", true, id)
+    }
+
+    private fun handleGroupMessage(context: Context, sender: String, body: String) {
+        if (PrefsManager.isBlocked(context, sender)) return
+        val parts = body.split("::", limit = 6)
+        if (parts.size < 6) return
+        val id=parts[2]; val senderPseudo=parts[4]; val text=parts[5]
+        val group=PrefsManager.getGroup(context,id) ?: return
+        if (group.members.none { PrefsManager.normalizePhone(it.phone)==PrefsManager.normalizePhone(sender) }) return
+        PrefsManager.addGroupMessage(context, com.bubblesms.app.data.GroupMessage(id,text,senderPseudo,false,System.currentTimeMillis()))
+        if (!PrefsManager.isMuted(context, id)) notify(context, group.name, "$senderPseudo : $text", true, id)
+    }
+
     private fun handleMessage(context: Context, sender: String, body: String) {
+        if (PrefsManager.isBlocked(context, sender)) return
+
         val parts = body.split("::", limit = 4)
         if (parts.size < 4) return
         val theirPseudo = parts[2]
@@ -75,18 +105,22 @@ class SmsReceiver : BroadcastReceiver() {
         val localIntent = Intent(ACTION_NEW_MESSAGE).putExtra(EXTRA_PHONE, sender)
         LocalBroadcastManager.getInstance(context).sendBroadcast(localIntent)
 
-        notify(context, friend.pseudo.ifBlank { theirPseudo }, text)
+        if (!PrefsManager.isMuted(context, sender)) notify(context, friend.pseudo.ifBlank { theirPseudo }, text)
     }
 
-    private fun notify(context: Context, title: String, text: String) {
+    private fun notify(context: Context, title: String, text: String, isGroup: Boolean = false, groupId: String = "") {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(CHANNEL_ID, "BubbleSMS", NotificationManager.IMPORTANCE_HIGH)
             nm.createNotificationChannel(channel)
         }
-        val openIntent = Intent(context, ContactsActivity::class.java)
+        val openIntent = if (isGroup) Intent(context, GroupChatActivity::class.java).putExtra("groupId", groupId) else Intent(context, ContactsActivity::class.java)
+        // Code de requête unique par conversation (groupe ou ami) : sans ça, toutes les
+        // notifications partagent le même PendingIntent et appuyer sur une ancienne
+        // notification pouvait ouvrir la mauvaise conversation (la plus récente).
+        val requestCode = (if (isGroup) "g_$groupId" else "c_$title").hashCode()
         val pending = PendingIntent.getActivity(
-            context, 0, openIntent,
+            context, requestCode, openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -96,6 +130,6 @@ class SmsReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .setContentIntent(pending)
             .build()
-        nm.notify(System.currentTimeMillis().toInt(), notification)
+        nm.notify(requestCode, notification)
     }
 }

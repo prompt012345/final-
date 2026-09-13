@@ -7,6 +7,9 @@ import android.os.Bundle
 import android.telephony.SmsManager
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.EditText
+import android.text.Editable
+import android.text.TextWatcher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -23,6 +26,7 @@ class ContactsActivity : AppCompatActivity() {
     private lateinit var requestsRecycler: RecyclerView
     private lateinit var requestsLabel: TextView
     private lateinit var avatarView: ShapeableImageView
+    private lateinit var groupsRecycler: RecyclerView
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -41,10 +45,12 @@ class ContactsActivity : AppCompatActivity() {
 
         friendsRecycler = findViewById(R.id.recyclerFriends)
         requestsRecycler = findViewById(R.id.recyclerRequests)
+        groupsRecycler = findViewById(R.id.recyclerGroups)
         requestsLabel = findViewById(R.id.labelRequests)
         avatarView = findViewById(R.id.imageMyProfile)
         friendsRecycler.layoutManager = LinearLayoutManager(this)
         requestsRecycler.layoutManager = LinearLayoutManager(this)
+        groupsRecycler.layoutManager = LinearLayoutManager(this)
 
         avatarView.setOnClickListener {
             pickImage.launch("image/*")
@@ -55,7 +61,13 @@ class ContactsActivity : AppCompatActivity() {
             startActivity(Intent(this, AddFriendActivity::class.java))
         }
 
+        if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 44)
+        findViewById<FloatingActionButton>(R.id.fabAddGroup).setOnClickListener { startActivity(Intent(this, GroupCreateActivity::class.java)) }
+        findViewById<TextView>(R.id.buttonSettings).setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
+        findViewById<EditText>(R.id.searchInput).addTextChangedListener(object: TextWatcher { override fun beforeTextChanged(s: CharSequence?, st:Int,c:Int,a:Int){} override fun onTextChanged(s:CharSequence?,st:Int,b:Int,c:Int){ filterConversations(s?.toString().orEmpty()) } override fun afterTextChanged(e:Editable?){}})
+
         loadProfilePicture()
+        findViewById<TextView>(R.id.myStatusText).text = "${PrefsManager.getStatus(this)} • Conversations privées"
         refresh()
     }
 
@@ -79,7 +91,15 @@ class ContactsActivity : AppCompatActivity() {
 
     private fun refresh() {
         val friends = PrefsManager.getFriends(this)
-        friendsRecycler.adapter = FriendAdapter(friends) { friend ->
+        val groups = PrefsManager.getGroups(this)
+        val query = findViewById<EditText>(R.id.searchInput).text.toString().trim().lowercase()
+        val visibleGroups = if(query.isBlank()) groups else groups.filter { it.name.lowercase().contains(query) }
+        val visibleFriends = if(query.isBlank()) friends else friends.filter { it.pseudo.lowercase().contains(query) || it.phone.contains(query) }
+        groupsRecycler.adapter = GroupAdapter(visibleGroups) { g ->
+            startActivity(Intent(this, GroupChatActivity::class.java).putExtra("groupId", g.id))
+        }
+
+        friendsRecycler.adapter = FriendAdapter(visibleFriends) { friend ->
             val intent = Intent(this, ChatActivity::class.java)
             intent.putExtra("phone", friend.phone)
             intent.putExtra("pseudo", friend.pseudo)
@@ -104,4 +124,12 @@ class ContactsActivity : AppCompatActivity() {
             refresh()
         }
     }
+    private fun filterConversations(query: String) {
+        val q=query.trim().lowercase()
+        val groups=PrefsManager.getGroups(this).filter{q.isBlank() || it.name.lowercase().contains(q)}
+        val friends=PrefsManager.getFriends(this).filter{q.isBlank() || it.pseudo.lowercase().contains(q) || it.phone.contains(q)}
+        groupsRecycler.adapter=GroupAdapter(groups){g->startActivity(Intent(this,GroupChatActivity::class.java).putExtra("groupId",g.id))}
+        friendsRecycler.adapter=FriendAdapter(friends){f->startActivity(Intent(this,ChatActivity::class.java).putExtra("phone",f.phone).putExtra("pseudo",f.pseudo))}
+    }
+
 }

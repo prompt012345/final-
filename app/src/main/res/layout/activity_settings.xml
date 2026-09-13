@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/background">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="22dp">
+  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Réglages" android:textColor="@color/text_dark" android:textSize="30sp" android:textStyle="bold"/>
+  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Personnalise ton expérience BubbleSMS" android:textColor="@color/text_muted" android:layout_marginTop="4dp" android:layout_marginBottom="22dp"/>
+  <Button android:id="@+id/editProfile" android:layout_width="match_parent" android:layout_height="54dp" android:text="✦  Modifier mon profil"/>
+  <Button android:id="@+id/changeStatus" android:layout_width="match_parent" android:layout_height="54dp" android:text="●  Choisir mon statut"/>
+  <Button android:id="@+id/manageBlocked" android:layout_width="match_parent" android:layout_height="54dp" android:text="⊘  Utilisateurs bloqués"/>
+  <Button android:id="@+id/appPin" android:layout_width="match_parent" android:layout_height="54dp" android:text="⌑  Code PIN de l'application"/>
+  <Button android:id="@+id/privacy" android:layout_width="match_parent" android:layout_height="54dp" android:text="◉  Confidentialité du statut"/>
+ </LinearLayout>
+</ScrollView>

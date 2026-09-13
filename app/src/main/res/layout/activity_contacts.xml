@@ -11,7 +11,10 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="20dp">
+        android:paddingStart="22dp"
+        android:paddingTop="22dp"
+        android:paddingEnd="22dp"
+        android:paddingBottom="12dp">
 
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/imageMyProfile"
@@ -21,36 +24,116 @@
             android:scaleType="centerCrop"
             android:background="@drawable/avatar_placeholder"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.BubbleSMS.Circle"
-            app:strokeColor="@color/accent"
-            app:strokeWidth="2dp" />
+            app:strokeColor="#FFFFFF"
+            app:strokeWidth="1dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/screenTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Messages"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_dark" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/myStatusText"
+                android:text="En ligne • Conversations privées"
+                android:textSize="12sp"
+                android:textColor="@color/text_muted"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/screenTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Mes amis"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_dark" />
-
+            android:id="@+id/buttonSettings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="⋯"
+            android:textSize="24sp"
+            android:textColor="@color/text_dark"
+            android:background="@drawable/search_bg" />
     </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/searchBox"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_below="@id/headerRow"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="14dp"
+        android:gravity="center_vertical"
+        android:background="@drawable/search_bg"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp">
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_search" />
+        <EditText
+            android:id="@+id/searchInput"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:hint="Rechercher une conversation"
+            android:textColor="@color/text_dark"
+            android:hintTextColor="@color/text_muted"
+            android:textSize="14sp"
+            android:singleLine="true"
+            android:background="@android:color/transparent"
+            android:padding="0dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/labelGroups"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/searchBox"
+        android:text="Groupes"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:textColor="@color/text_dark"
+        android:paddingStart="22dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerGroups"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/labelGroups"
+        android:paddingBottom="5dp"
+        android:clipToPadding="false" />
 
     <TextView
         android:id="@+id/labelRequests"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/headerRow"
+        android:layout_below="@id/searchBox"
         android:text="Demandes reçues"
         android:textStyle="bold"
-        android:paddingHorizontal="20dp"
+        android:textSize="14sp"
+        android:textColor="@color/text_dark"
+        android:paddingStart="22dp"
+        android:paddingBottom="8dp"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerRequests"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/labelRequests"
-        android:padding="8dp"
+        android:layout_below="@id/recyclerGroups"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:clipToPadding="false"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -58,16 +141,34 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/recyclerRequests"
-        android:padding="8dp" />
+        android:paddingTop="4dp"
+        android:paddingBottom="100dp"
+        android:clipToPadding="false" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddFriend"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="58dp"
+        android:layout_height="58dp"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
-        android:layout_margin="24dp"
-        android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="@color/accent" />
-
+        android:layout_marginEnd="22dp"
+        android:layout_marginBottom="24dp"
+        android:src="@drawable/ic_add"
+        android:contentDescription="Ajouter un ami"
+        app:backgroundTint="#F4F4F4"
+        app:tint="#000000"
+        app:elevation="8dp" />
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddGroup"
+        android:layout_width="58dp"
+        android:layout_height="58dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="22dp"
+        android:layout_marginBottom="24dp"
+        android:src="@drawable/ic_group"
+        android:contentDescription="Créer un groupe"
+        app:backgroundTint="#F2F2F2"
+        app:tint="#000000"
+        app:elevation="8dp" />
 </RelativeLayout>
