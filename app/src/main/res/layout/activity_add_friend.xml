@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/background">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ajouter un ami"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="20dp" />
+
+    <EditText
+        android:id="@+id/editPhone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Numéro de téléphone"
+        android:inputType="phone"
+        android:padding="14dp"
+        android:background="@drawable/bubble_received"
+        android:layout_marginBottom="14dp" />
+
+    <EditText
+        android:id="@+id/editFriendPseudo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Pseudo à lui donner"
+        android:inputType="text"
+        android:padding="14dp"
+        android:background="@drawable/bubble_received"
+        android:layout_marginBottom="20dp" />
+
+    <Button
+        android:id="@+id/buttonSendRequest"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Envoyer la demande"
+        android:backgroundTint="@color/accent"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>
