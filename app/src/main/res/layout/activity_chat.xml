@@ -141,7 +141,7 @@
                 android:id="@+id/buttonSticker"
                 android:layout_width="46dp"
                 android:layout_height="52dp"
-                android:src="@android:drawable/ic_menu_emoticons"
+                android:src="@drawable/ic_add"
                 android:tint="@color/text_dark"
                 android:background="@android:color/transparent"
                 android:contentDescription="Stickers" />
