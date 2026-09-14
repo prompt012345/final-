@@ -21,7 +21,7 @@ class MessageAdapter(private var items: MutableList<ChatMessage>, private val on
     override fun onBindViewHolder(h:BubbleVH,p:Int){
         val m=items[p]
         h.text.text=m.body
-        h.meta.text=SimpleDateFormat("HH:mm",Locale.getDefault()).format(Date(m.timestamp)) + if(m.pinned) "  • épinglé" else ""
+        h.meta.text=SimpleDateFormat("HH:mm",Locale.getDefault()).format(Date(m.timestamp)) + if(m.edited) "  • modifié" else "" + if(m.pinned) "  • épinglé" else ""
         h.reaction.text=m.reaction
         h.reaction.visibility=if(m.reaction.isBlank())View.GONE else View.VISIBLE
         h.itemView.setOnClickListener {

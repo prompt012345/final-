@@ -15,6 +15,7 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<Button>(R.id.changeStatus).setOnClickListener { chooseStatus() }
         findViewById<Button>(R.id.manageBlocked).setOnClickListener { blockedUsers() }
         findViewById<Button>(R.id.appPin).setOnClickListener { pinDialog() }
+        findViewById<Button>(R.id.stats).setOnClickListener { showStats() }
         findViewById<Button>(R.id.privacy).setOnClickListener {
             val now = !PrefsManager.isPrivateStatus(this)
             PrefsManager.setPrivateStatus(this, now)
@@ -36,6 +37,15 @@ class SettingsActivity : AppCompatActivity() {
         val names=if(friends.isEmpty()) arrayOf("Aucun utilisateur bloqué") else friends.map{it.pseudo}.toTypedArray()
         AlertDialog.Builder(this).setTitle("Utilisateurs bloqués").setItems(names){_,which-> if(friends.isNotEmpty()){PrefsManager.setBlocked(this,friends[which].phone,false);Toast.makeText(this,"Débloqué",Toast.LENGTH_SHORT).show()}}.setPositiveButton("Fermer",null).show()
     }
+    private fun showStats() {
+        val friends=PrefsManager.getFriends(this)
+        val messages=friends.sumOf { PrefsManager.getMessages(this,it.phone).size }
+        val sent=friends.sumOf { PrefsManager.getMessages(this,it.phone).count { m -> m.isSent } }
+        val received=messages-sent
+        val groups=PrefsManager.getGroups(this).size
+        AlertDialog.Builder(this).setTitle("Tes statistiques").setMessage("👥 Amis : ${friends.size}\n👨‍👩‍👧 Groupes : $groups\n💬 Messages : $messages\n↗ Envoyés : $sent\n↙ Reçus : $received").setPositiveButton("Fermer",null).show()
+    }
+
     private fun pinDialog() {
         val input=EditText(this); input.inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD; input.hint="4 à 8 chiffres"
         AlertDialog.Builder(this).setTitle("Code PIN de l'application").setMessage("Le PIN sera utilisé par l'écran de verrouillage BubbleSMS.").setView(input).setNegativeButton("Désactiver",{_,_->PrefsManager.setAppPin(this,null)}).setPositiveButton("Enregistrer"){_,_->

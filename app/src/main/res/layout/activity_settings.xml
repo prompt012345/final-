@@ -7,6 +7,7 @@
   <Button android:id="@+id/changeStatus" android:layout_width="match_parent" android:layout_height="54dp" android:text="●  Choisir mon statut"/>
   <Button android:id="@+id/manageBlocked" android:layout_width="match_parent" android:layout_height="54dp" android:text="⊘  Utilisateurs bloqués"/>
   <Button android:id="@+id/appPin" android:layout_width="match_parent" android:layout_height="54dp" android:text="⌑  Code PIN de l'application"/>
+  <Button android:id="@+id/stats" android:layout_width="match_parent" android:layout_height="54dp" android:text="◈  Mes statistiques"/>
   <Button android:id="@+id/privacy" android:layout_width="match_parent" android:layout_height="54dp" android:text="◉  Confidentialité du statut"/>
  </LinearLayout>
 </ScrollView>

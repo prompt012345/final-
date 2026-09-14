@@ -13,9 +13,11 @@ object LocalDiscoveryManager {
     private val executor = Executors.newCachedThreadPool()
     @Volatile private var running = false
     private var socket: DatagramSocket? = null
+    private var callback: ((String, String) -> Unit)? = null
 
     fun start(ctx: Context, name: String, onPeer: (String, String) -> Unit) {
         if (running) return
+        callback = onPeer
         running = true
         executor.execute {
             try {
@@ -30,7 +32,7 @@ object LocalDiscoveryManager {
                             val msg = String(p.data, 0, p.length)
                             if (msg.startsWith("BUBBLE_LOCAL::")) {
                                 val peer = msg.removePrefix("BUBBLE_LOCAL::").split("::", limit = 2)
-                                if (peer.size == 2 && peer[1] != localIp(ctx)) onPeer(peer[0], peer[1])
+                                if (peer.size == 2 && peer[1] != localIp(ctx)) callback?.invoke(peer[0], peer[1])
                             }
                         } catch (_: Throwable) { if (!running) break }
                     }
@@ -47,7 +49,7 @@ object LocalDiscoveryManager {
         }
     }
 
-    fun stop() { running = false; try { socket?.close() } catch (_: Throwable) {} ; socket = null }
+    fun stop() { running = false; callback = null; try { socket?.close() } catch (_: Throwable) {} ; socket = null }
 
     private fun localIp(ctx: Context): String {
         val wm = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager

@@ -6,6 +6,11 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.text.Editable
+import android.text.TextWatcher
+import java.util.Calendar
 import android.provider.OpenableColumns
 import android.telephony.SmsManager
 import android.view.View
@@ -69,9 +74,11 @@ class ChatActivity : AppCompatActivity() {
         recycler.adapter = adapter
 
         val input=findViewById<EditText>(R.id.editMessage)
+        input.setText(PrefsManager.getDraft(this, phone))
+        input.addTextChangedListener(object: TextWatcher { override fun beforeTextChanged(s: CharSequence?, st:Int,c:Int,a:Int){} override fun onTextChanged(s: CharSequence?,st:Int,b:Int,c:Int){ PrefsManager.setDraft(this@ChatActivity,phone,s?.toString().orEmpty()) } override fun afterTextChanged(e:Editable?){}})
         findViewById<ImageButton>(R.id.buttonSend).setOnClickListener {
             val text=input.text.toString().trim()
-            if(text.isNotEmpty()){ sendText(text); input.setText("") }
+            if(text.isNotEmpty()){ sendText(text); input.setText(""); PrefsManager.setDraft(this,phone,"") }
         }
         applyWallpaper()
         loadMessages()
@@ -104,7 +111,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun showChatOptions(){
-        val items=arrayOf("🎨 Personnaliser le fond","🔄 Fond noir","📷 Choisir une image","📞 Appel audio (réseau opérateur)","📹 Appel vidéo local (Wi‑Fi)","📎 Partage local Wi‑Fi")
+        val items=arrayOf("🎨 Personnaliser le fond","🔄 Fond noir","📷 Choisir une image","📞 Appel audio (réseau opérateur)","📹 Appel vidéo local (Wi‑Fi)","📎 Partage local Wi‑Fi","🔒 Verrouiller cette conversation","🖼️ Galerie des médias","⏰ Programmer un SMS")
         AlertDialog.Builder(this).setTitle("Options de $pseudo").setItems(items){_,which->
             when(which){
                 0->showWallpaperColors()
@@ -113,6 +120,9 @@ class ChatActivity : AppCompatActivity() {
                 3->startPhoneCall()
                 4->openLocalCall(false)
                 5->startActivity(Intent(this, LocalShareActivity::class.java))
+                6->{ val locked=!PrefsManager.isChatLocked(this,phone); if(locked && PrefsManager.getAppPin(this).isNullOrBlank()){ Toast.makeText(this,"Configure d’abord un PIN dans Réglages",Toast.LENGTH_LONG).show() } else { PrefsManager.setChatLocked(this,phone,locked); Toast.makeText(this,if(locked)"Conversation verrouillée" else "Conversation déverrouillée",Toast.LENGTH_SHORT).show() } }
+                7->startActivity(Intent(this,MediaGalleryActivity::class.java).putExtra("phone",phone).putExtra("pseudo",pseudo))
+                8->scheduleSmsDialog()
             }
         }.show()
     }
@@ -149,15 +159,30 @@ class ChatActivity : AppCompatActivity() {
     private fun showMessageActions(position:Int){
         val messages=PrefsManager.getMessages(this,phone); if(position !in messages.indices)return
         val current=messages[position]
-        val options=arrayOf("↩ Répondre","❤ Réagir","📌 Épingler / désépingler","📋 Copier","🗑 Supprimer","🔕 Sourdine")
+        val options=arrayOf("✏️ Modifier","↩ Répondre","❤ Réagir","📌 Épingler / désépingler","📋 Copier","🗑 Supprimer","🔕 Sourdine")
         AlertDialog.Builder(this).setTitle("Message").setItems(options){_,which->when(which){
-            0->findViewById<EditText>(R.id.editMessage).setText("↩ ${current.body} — ")
-            1->{val r=arrayOf("❤","😂","👍","😮","😢","🔥");AlertDialog.Builder(this).setTitle("Réaction").setItems(r){_,i->PrefsManager.updateMessage(this,phone,position,current.copy(reaction=r[i]));loadMessages()}.show()}
-            2->{PrefsManager.updateMessage(this,phone,position,current.copy(pinned=!current.pinned));loadMessages()}
-            3->{val cm=getSystemService(android.content.ClipboardManager::class.java);cm.setPrimaryClip(android.content.ClipData.newPlainText("Message",current.body));Toast.makeText(this,"Copié",Toast.LENGTH_SHORT).show()}
-            4->{PrefsManager.deleteMessage(this,phone,position);loadMessages()}
-            5->{val muted=!PrefsManager.isMuted(this,phone);PrefsManager.setMuted(this,phone,muted);Toast.makeText(this,if(muted)"Conversation en sourdine" else "Notifications réactivées",Toast.LENGTH_SHORT).show()}
+            0->{ val input=EditText(this); input.setText(current.body); AlertDialog.Builder(this).setTitle("Modifier le message").setView(input).setNegativeButton("Annuler",null).setPositiveButton("Enregistrer"){_,_-> val t=input.text.toString().trim(); if(t.isNotEmpty()){ PrefsManager.updateMessage(this,phone,position,current.copy(body=t,edited=true)); loadMessages() }}.show() }
+            1->findViewById<EditText>(R.id.editMessage).setText("↩ ${current.body} — ")
+            2->{val r=arrayOf("❤","😂","👍","😮","😢","🔥");AlertDialog.Builder(this).setTitle("Réaction").setItems(r){_,i->PrefsManager.updateMessage(this,phone,position,current.copy(reaction=r[i]));loadMessages()}.show()}
+            3->{PrefsManager.updateMessage(this,phone,position,current.copy(pinned=!current.pinned));loadMessages()}
+            4->{val cm=getSystemService(android.content.ClipboardManager::class.java);cm.setPrimaryClip(android.content.ClipData.newPlainText("Message",current.body));Toast.makeText(this,"Copié",Toast.LENGTH_SHORT).show()}
+            5->{PrefsManager.deleteMessage(this,phone,position);loadMessages()}
+            6->{val muted=!PrefsManager.isMuted(this,phone);PrefsManager.setMuted(this,phone,muted);Toast.makeText(this,if(muted)"Conversation en sourdine" else "Notifications réactivées",Toast.LENGTH_SHORT).show()}
         }}.show()
+    }
+
+    private fun scheduleSmsDialog(){
+        val input=EditText(this); input.hint="Message à envoyer"; input.setSingleLine(false)
+        AlertDialog.Builder(this).setTitle("Programmer un SMS").setView(input).setNegativeButton("Annuler",null).setPositiveButton("Choisir l'heure"){_,_->
+            val text=input.text.toString().trim(); if(text.isBlank()) return@setPositiveButton
+            val now=Calendar.getInstance(); val picker=android.app.TimePickerDialog(this,{_,h,m->
+                val whenAt=Calendar.getInstance().apply{set(Calendar.HOUR_OF_DAY,h);set(Calendar.MINUTE,m);set(Calendar.SECOND,0);if(timeInMillis<=now.timeInMillis)add(Calendar.DAY_OF_YEAR,1)}
+                val req=(System.currentTimeMillis()%100000).toInt()
+                val pi=PendingIntent.getBroadcast(this,req,Intent(this,ScheduledSmsReceiver::class.java).apply{putExtra("phone",phone);putExtra("text",text)},PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                (getSystemService(ALARM_SERVICE) as AlarmManager).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,whenAt.timeInMillis,pi)
+                Toast.makeText(this,"SMS programmé pour ${String.format("%02d:%02d",h,m)}",Toast.LENGTH_LONG).show()
+            },now.get(Calendar.HOUR_OF_DAY),now.get(Calendar.MINUTE),true); picker.show()
+        }.show()
     }
 
     private fun loadMessages(){val messages=PrefsManager.getMessages(this,phone);adapter.update(messages);if(messages.isNotEmpty())recycler.scrollToPosition(messages.size-1)}

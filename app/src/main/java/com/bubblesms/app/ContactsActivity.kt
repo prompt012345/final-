@@ -101,6 +101,10 @@ class ContactsActivity : AppCompatActivity() {
 
         friendsRecycler.adapter = FriendAdapter(visibleFriends) { friend ->
             val intent = Intent(this, ChatActivity::class.java)
+            if (PrefsManager.isChatLocked(this, friend.phone)) {
+                val input=EditText(this); input.inputType=android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+                androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Conversation verrouillée").setMessage("Entre le PIN de l’application.").setView(input).setNegativeButton("Annuler",null).setPositiveButton("Ouvrir"){_,_-> if(input.text.toString()==PrefsManager.getAppPin(this)){ startActivity(Intent(this,ChatActivity::class.java).putExtra("phone",friend.phone).putExtra("pseudo",friend.pseudo)) } else Toast.makeText(this,"PIN incorrect",Toast.LENGTH_SHORT).show() }.show(); return@setOnClickListener
+            }
             intent.putExtra("phone", friend.phone)
             intent.putExtra("pseudo", friend.pseudo)
             startActivity(intent)
@@ -129,7 +133,7 @@ class ContactsActivity : AppCompatActivity() {
         val groups=PrefsManager.getGroups(this).filter{q.isBlank() || it.name.lowercase().contains(q)}
         val friends=PrefsManager.getFriends(this).filter{q.isBlank() || it.pseudo.lowercase().contains(q) || it.phone.contains(q)}
         groupsRecycler.adapter=GroupAdapter(groups){g->startActivity(Intent(this,GroupChatActivity::class.java).putExtra("groupId",g.id))}
-        friendsRecycler.adapter=FriendAdapter(friends){f->startActivity(Intent(this,ChatActivity::class.java).putExtra("phone",f.phone).putExtra("pseudo",f.pseudo))}
+        friendsRecycler.adapter=FriendAdapter(friends){f-> if(PrefsManager.isChatLocked(this,f.phone)){ val input=EditText(this); input.inputType=android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD; androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Conversation verrouillée").setView(input).setNegativeButton("Annuler",null).setPositiveButton("Ouvrir"){_,_->if(input.text.toString()==PrefsManager.getAppPin(this))startActivity(Intent(this,ChatActivity::class.java).putExtra("phone",f.phone).putExtra("pseudo",f.pseudo)) else Toast.makeText(this,"PIN incorrect",Toast.LENGTH_SHORT).show()}.show() } else startActivity(Intent(this,ChatActivity::class.java).putExtra("phone",f.phone).putExtra("pseudo",f.pseudo))}
     }
 
 }

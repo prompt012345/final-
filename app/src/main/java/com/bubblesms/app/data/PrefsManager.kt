@@ -26,6 +26,8 @@ object PrefsManager {
     private const val KEY_PIN = "app_pin"
     private const val KEY_PRIVACY = "privacy_status"
     private const val KEY_MY_ID = "my_stable_id"
+    private const val KEY_LOCKED_CHATS = "locked_chats"
+    private const val KEY_DRAFT_PREFIX = "draft_"
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -183,7 +185,7 @@ object PrefsManager {
         val list = mutableListOf<ChatMessage>()
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
-            list.add(ChatMessage(o.getString("body"), o.getBoolean("sent"), o.getLong("time"), o.optString("reaction", ""), o.optBoolean("pinned", false), o.optString("attachmentUri", ""), o.optString("attachmentType", "")))
+            list.add(ChatMessage(o.getString("body"), o.getBoolean("sent"), o.getLong("time"), o.optString("reaction", ""), o.optBoolean("pinned", false), o.optString("attachmentUri", ""), o.optString("attachmentType", ""), o.optBoolean("edited", false)))
         }
         return list
     }
@@ -197,7 +199,7 @@ object PrefsManager {
             val o = JSONObject()
             o.put("body", m.body)
             o.put("sent", m.isSent)
-            o.put("time", m.timestamp).put("reaction", m.reaction).put("pinned", m.pinned).put("attachmentUri", m.attachmentUri).put("attachmentType", m.attachmentType)
+            o.put("time", m.timestamp).put("reaction", m.reaction).put("pinned", m.pinned).put("attachmentUri", m.attachmentUri).put("attachmentType", m.attachmentType).put("edited", m.edited)
             arr.put(o)
         }
         prefs(ctx).edit().putString(key, arr.toString()).apply()
@@ -236,6 +238,16 @@ object PrefsManager {
             file.absolutePath
         } catch (_: Exception) { null }
     }
+
+    // ---- Fonctionnalités messagerie ----
+    fun isChatLocked(ctx: Context, phone: String): Boolean = prefs(ctx).getStringSet(KEY_LOCKED_CHATS, emptySet())?.contains(normalizePhone(phone)) == true
+    fun setChatLocked(ctx: Context, phone: String, locked: Boolean) {
+        val set = prefs(ctx).getStringSet(KEY_LOCKED_CHATS, emptySet())?.toMutableSet() ?: mutableSetOf()
+        val n = normalizePhone(phone); if (locked) set.add(n) else set.remove(n)
+        prefs(ctx).edit().putStringSet(KEY_LOCKED_CHATS, set).apply()
+    }
+    fun getDraft(ctx: Context, phone: String): String = prefs(ctx).getString(KEY_DRAFT_PREFIX + normalizePhone(phone), "") ?: ""
+    fun setDraft(ctx: Context, phone: String, text: String) { prefs(ctx).edit().putString(KEY_DRAFT_PREFIX + normalizePhone(phone), text).apply() }
 
     // ---- Utilisateurs bloqués ----
     fun getBlockedUsers(ctx: Context): MutableSet<String> =

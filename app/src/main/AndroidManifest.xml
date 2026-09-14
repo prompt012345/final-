@@ -37,6 +37,7 @@
         <activity android:name=".GroupChatActivity" android:exported="false" />
         <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".LocalShareActivity" android:exported="false" />
+        <activity android:name=".MediaGalleryActivity" android:exported="false" />
         <activity android:name=".CallActivity" android:exported="false" />
 
         <provider
@@ -48,6 +49,8 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver android:name=".ScheduledSmsReceiver" android:exported="false" />
 
         <receiver
             android:name=".SmsReceiver"
