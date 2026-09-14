@@ -103,11 +103,12 @@ class ContactsActivity : AppCompatActivity() {
             val intent = Intent(this, ChatActivity::class.java)
             if (PrefsManager.isChatLocked(this, friend.phone)) {
                 val input=EditText(this); input.inputType=android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-                androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Conversation verrouillée").setMessage("Entre le PIN de l’application.").setView(input).setNegativeButton("Annuler",null).setPositiveButton("Ouvrir"){_,_-> if(input.text.toString()==PrefsManager.getAppPin(this)){ startActivity(Intent(this,ChatActivity::class.java).putExtra("phone",friend.phone).putExtra("pseudo",friend.pseudo)) } else Toast.makeText(this,"PIN incorrect",Toast.LENGTH_SHORT).show() }.show(); return@setOnClickListener
+                androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Conversation verrouillée").setMessage("Entre le PIN de l’application.").setView(input).setNegativeButton("Annuler",null).setPositiveButton("Ouvrir"){_,_-> if(input.text.toString()==PrefsManager.getAppPin(this)){ startActivity(Intent(this,ChatActivity::class.java).putExtra("phone",friend.phone).putExtra("pseudo",friend.pseudo)) } else Toast.makeText(this,"PIN incorrect",Toast.LENGTH_SHORT).show() }.show()
+            } else {
+                intent.putExtra("phone", friend.phone)
+                intent.putExtra("pseudo", friend.pseudo)
+                startActivity(intent)
             }
-            intent.putExtra("phone", friend.phone)
-            intent.putExtra("pseudo", friend.pseudo)
-            startActivity(intent)
         }
 
         val requests = PrefsManager.getPendingRequests(this)
