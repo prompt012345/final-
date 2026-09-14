@@ -183,7 +183,7 @@ object PrefsManager {
         val list = mutableListOf<ChatMessage>()
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
-            list.add(ChatMessage(o.getString("body"), o.getBoolean("sent"), o.getLong("time"), o.optString("reaction", ""), o.optBoolean("pinned", false)))
+            list.add(ChatMessage(o.getString("body"), o.getBoolean("sent"), o.getLong("time"), o.optString("reaction", ""), o.optBoolean("pinned", false), o.optString("attachmentUri", ""), o.optString("attachmentType", "")))
         }
         return list
     }
@@ -197,11 +197,46 @@ object PrefsManager {
             val o = JSONObject()
             o.put("body", m.body)
             o.put("sent", m.isSent)
-            o.put("time", m.timestamp).put("reaction", m.reaction).put("pinned", m.pinned)
+            o.put("time", m.timestamp).put("reaction", m.reaction).put("pinned", m.pinned).put("attachmentUri", m.attachmentUri).put("attachmentType", m.attachmentType)
             arr.put(o)
         }
         prefs(ctx).edit().putString(key, arr.toString()).apply()
     }
+    // ---- Fond de conversation ----
+    private const val KEY_CHAT_WALLPAPER_PREFIX = "chat_wallpaper_"
+
+    fun getChatWallpaper(ctx: Context, phone: String): String? =
+        prefs(ctx).getString(KEY_CHAT_WALLPAPER_PREFIX + normalizePhone(phone), null)
+
+    fun setChatWallpaper(ctx: Context, phone: String, value: String?) {
+        val e = prefs(ctx).edit()
+        val key = KEY_CHAT_WALLPAPER_PREFIX + normalizePhone(phone)
+        if (value.isNullOrBlank()) e.remove(key) else e.putString(key, value)
+        e.apply()
+    }
+
+    fun saveChatWallpaper(ctx: Context, phone: String, uri: Uri): String? {
+        return try {
+            val file = File(ctx.filesDir, "wallpaper_${normalizePhone(phone)}.jpg")
+            ctx.contentResolver.openInputStream(uri)?.use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            } ?: return null
+            setChatWallpaper(ctx, phone, file.absolutePath)
+            file.absolutePath
+        } catch (_: Exception) { null }
+    }
+
+    fun saveChatAttachment(ctx: Context, phone: String, uri: Uri, extension: String): String? {
+        return try {
+            val dir = File(ctx.filesDir, "attachments").apply { mkdirs() }
+            val file = File(dir, "${System.currentTimeMillis()}_${normalizePhone(phone)}.$extension")
+            ctx.contentResolver.openInputStream(uri)?.use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            } ?: return null
+            file.absolutePath
+        } catch (_: Exception) { null }
+    }
+
     // ---- Utilisateurs bloqués ----
     fun getBlockedUsers(ctx: Context): MutableSet<String> =
         prefs(ctx).getStringSet(KEY_BLOCKED, emptySet())?.toMutableSet() ?: mutableSetOf()
@@ -303,13 +338,13 @@ object PrefsManager {
         if (index !in list.indices) return
         list[index] = message
         val arr = JSONArray()
-        list.forEach { m -> arr.put(JSONObject().put("body",m.body).put("sent",m.isSent).put("time",m.timestamp).put("reaction",m.reaction).put("pinned",m.pinned)) }
+        list.forEach { m -> arr.put(JSONObject().put("body",m.body).put("sent",m.isSent).put("time",m.timestamp).put("reaction",m.reaction).put("pinned",m.pinned).put("attachmentUri",m.attachmentUri).put("attachmentType",m.attachmentType)) }
         prefs(ctx).edit().putString(KEY_MSG_PREFIX + normalizePhone(phone), arr.toString()).apply()
     }
     fun deleteMessage(ctx: Context, phone: String, index: Int) {
         val list = getMessages(ctx, phone); if (index !in list.indices) return
         list.removeAt(index)
-        val arr=JSONArray(); list.forEach { m -> arr.put(JSONObject().put("body",m.body).put("sent",m.isSent).put("time",m.timestamp).put("reaction",m.reaction).put("pinned",m.pinned)) }
+        val arr=JSONArray(); list.forEach { m -> arr.put(JSONObject().put("body",m.body).put("sent",m.isSent).put("time",m.timestamp).put("reaction",m.reaction).put("pinned",m.pinned).put("attachmentUri",m.attachmentUri).put("attachmentType",m.attachmentType)) }
         prefs(ctx).edit().putString(KEY_MSG_PREFIX + normalizePhone(phone), arr.toString()).apply()
     }
 

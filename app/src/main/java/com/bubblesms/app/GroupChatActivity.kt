@@ -31,6 +31,7 @@ class GroupChatActivity : AppCompatActivity() {
         recycler.adapter = adapter
         findViewById<ImageButton>(R.id.buttonGroupBack).setOnClickListener { finish() }
         findViewById<ImageButton>(R.id.buttonGroupInfo).setOnClickListener { showMembers() }
+        findViewById<ImageButton>(R.id.buttonGroupVideo).setOnClickListener { startActivity(android.content.Intent(this, CallActivity::class.java).putExtra("group", true)) }
         val input = findViewById<EditText>(R.id.editGroupMessage)
         findViewById<ImageButton>(R.id.buttonGroupSend).setOnClickListener {
             val text = input.text.toString().trim()
