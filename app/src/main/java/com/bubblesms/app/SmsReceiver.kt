@@ -29,14 +29,29 @@ private const val CHANNEL_ID = "bubble_sms_channel"
 class SmsReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
+        when (intent.action) {
+            // Nouveau transport : SMS de données, livrés uniquement à BubbleSMS
+            Telephony.Sms.Intents.DATA_SMS_RECEIVED_ACTION -> {
+                val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
+                for (m in messages) {
+                    val sender = m.originatingAddress ?: continue
+                    val data = m.userData ?: continue
+                    val body = BubbleSms.receiveChunk(context, sender, data) ?: continue
+                    dispatch(context, sender, body)
+                }
+            }
+            // Ancien transport (SMS texte) : gardé pour les téléphones pas encore mis à jour
+            Telephony.Sms.Intents.SMS_RECEIVED_ACTION -> {
+                val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
+                if (messages.isEmpty()) return
+                val sender = messages[0].originatingAddress ?: return
+                val fullBody = messages.joinToString(separator = "") { it.messageBody ?: "" }
+                dispatch(context, sender, fullBody)
+            }
+        }
+    }
 
-        val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
-        if (messages.isEmpty()) return
-
-        val sender = messages[0].originatingAddress ?: return
-        val fullBody = messages.joinToString(separator = "") { it.messageBody ?: "" }
-
+    private fun dispatch(context: Context, sender: String, fullBody: String) {
         when {
             fullBody.startsWith(PREFIX_REQ) -> handleRequest(context, sender, fullBody)
             fullBody.startsWith(PREFIX_ACC) -> handleAccept(context, sender, fullBody)
@@ -50,6 +65,16 @@ class SmsReceiver : BroadcastReceiver() {
     private fun handleRequest(context: Context, sender: String, body: String) {
         if (PrefsManager.isBlocked(context, sender)) return
         val theirPseudo = body.removePrefix(PREFIX_REQ)
+        val existing = PrefsManager.findFriend(context, sender)
+        if (existing != null) {
+            // Demande croisée (les deux se sont ajoutés) ou ami déjà connu : avant, la demande
+            // était ignorée et les deux restaient "en attente" pour toujours. On confirme et
+            // on répond tout de suite.
+            PrefsManager.confirmFriend(context, sender, existing.pseudo.ifBlank { theirPseudo })
+            BubbleSms.send(context, sender, "$PREFIX_ACC${PrefsManager.getMyPseudo(context) ?: "Moi"}")
+            notify(context, "Ami confirmé", "${existing.pseudo.ifBlank { theirPseudo }} est maintenant ton ami")
+            return
+        }
         val friend = Friend(sender, theirPseudo, confirmed = false)
         PrefsManager.addPendingRequest(context, friend)
         notify(context, "Nouvelle demande d'ami", "$theirPseudo veut t'ajouter")
@@ -58,8 +83,11 @@ class SmsReceiver : BroadcastReceiver() {
     private fun handleAccept(context: Context, sender: String, body: String) {
         if (PrefsManager.isBlocked(context, sender)) return
         val theirPseudo = body.removePrefix(PREFIX_ACC)
-        PrefsManager.confirmFriend(context, sender, theirPseudo)
-        notify(context, "Ami confirmé", "$theirPseudo a accepté ta demande")
+        // Avant : n'importe quel numéro pouvait s'ajouter comme ami confirmé en envoyant
+        // "BUB::ACC::...". On ne confirme plus que quelqu'un à qui on avait envoyé une demande.
+        val known = PrefsManager.findFriend(context, sender) ?: return
+        PrefsManager.confirmFriend(context, sender, known.pseudo.ifBlank { theirPseudo })
+        notify(context, "Ami confirmé", "${known.pseudo.ifBlank { theirPseudo }} a accepté ta demande")
     }
 
     private fun handleGroupNew(context: Context, sender: String, body: String) {
@@ -67,6 +95,11 @@ class SmsReceiver : BroadcastReceiver() {
         val parts = body.split("::", limit = 6)
         if (parts.size < 6) return
         val id = parts[2]; val name = parts[3]; val creator = parts[4]; val rawMembers = parts[5]
+        // Seul un ami confirmé peut nous ajouter à un groupe, et seul le créateur d'un groupe
+        // existant peut le modifier (avant, n'importe quel numéro pouvait écraser un groupe).
+        if (PrefsManager.findFriend(context, sender)?.confirmed != true) return
+        val old = PrefsManager.getGroup(context, id)
+        if (old != null && PrefsManager.normalizePhone(old.creatorPhone) != PrefsManager.normalizePhone(sender)) return
         val members = mutableListOf(Friend(sender, creator, true))
         if (rawMembers.isNotBlank()) rawMembers.split("|").forEach { item ->
             val x=item.split("~", limit=2); if(x.size==2 && members.none{PrefsManager.normalizePhone(it.phone)==PrefsManager.normalizePhone(x[0])}) members.add(Friend(x[0],x[1],true))
@@ -105,20 +138,29 @@ class SmsReceiver : BroadcastReceiver() {
         val localIntent = Intent(ACTION_NEW_MESSAGE).putExtra(EXTRA_PHONE, sender)
         LocalBroadcastManager.getInstance(context).sendBroadcast(localIntent)
 
-        if (!PrefsManager.isMuted(context, sender)) notify(context, friend.pseudo.ifBlank { theirPseudo }, text)
+        if (!PrefsManager.isMuted(context, sender)) {
+            val title = friend.pseudo.ifBlank { theirPseudo }
+            // Conversation verrouillée par PIN : on ne montre pas le texte dans la notification
+            val shown = if (PrefsManager.isChatLocked(context, sender)) "Nouveau message" else text
+            notify(context, title, shown, phone = if (PrefsManager.isChatLocked(context, sender)) null else friend.phone, chatPseudo = title)
+        }
     }
 
-    private fun notify(context: Context, title: String, text: String, isGroup: Boolean = false, groupId: String = "") {
+    private fun notify(context: Context, title: String, text: String, isGroup: Boolean = false, groupId: String = "", phone: String? = null, chatPseudo: String = "") {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(CHANNEL_ID, "BubbleSMS", NotificationManager.IMPORTANCE_HIGH)
             nm.createNotificationChannel(channel)
         }
-        val openIntent = if (isGroup) Intent(context, GroupChatActivity::class.java).putExtra("groupId", groupId) else Intent(context, ContactsActivity::class.java)
+        val openIntent = when {
+            isGroup -> Intent(context, GroupChatActivity::class.java).putExtra("groupId", groupId)
+            phone != null -> Intent(context, ChatActivity::class.java).putExtra("phone", phone).putExtra("pseudo", chatPseudo)
+            else -> Intent(context, ContactsActivity::class.java)
+        }
         // Code de requête unique par conversation (groupe ou ami) : sans ça, toutes les
         // notifications partagent le même PendingIntent et appuyer sur une ancienne
         // notification pouvait ouvrir la mauvaise conversation (la plus récente).
-        val requestCode = (if (isGroup) "g_$groupId" else "c_$title").hashCode()
+        val requestCode = (if (isGroup) "g_$groupId" else "c_${phone ?: title}").hashCode()
         val pending = PendingIntent.getActivity(
             context, requestCode, openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

@@ -36,7 +36,6 @@ class GroupCreateActivity : AppCompatActivity() {
             PrefsManager.saveGroup(this, group)
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
                 val me = PrefsManager.getMyPseudo(this) ?: "Moi"
-                val sms = SmsManager.getDefault()
                 // Chaque destinataire reçoit la liste des AUTRES membres uniquement :
                 // sinon il se retrouverait listé comme membre de son propre groupe,
                 // et s'enverrait un SMS à lui-même en répondant.
@@ -44,9 +43,9 @@ class GroupCreateActivity : AppCompatActivity() {
                     val others = group.members.filter {
                         PrefsManager.normalizePhone(it.phone) != PrefsManager.normalizePhone(recipient.phone)
                     }
-                    val memberData = others.joinToString("|") { "${it.phone}~${it.pseudo.replace("|", " ")}" }
+                    val memberData = others.joinToString("|") { "${it.phone}~${BubbleSms.clean(it.pseudo)}" }
                     val body = "BUB::GNEW::${group.id}::$n::$me::$memberData"
-                    sms.sendMultipartTextMessage(recipient.phone, null, sms.divideMessage(body), null, null)
+                    BubbleSms.send(this, recipient.phone, body)
                 }
             }
             startActivity(Intent(this, GroupChatActivity::class.java).putExtra("groupId", group.id))

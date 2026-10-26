@@ -39,8 +39,20 @@ class ContactsActivity : AppCompatActivity() {
         }
     }
 
+    // Rafraîchit la liste (nouvelle demande d'ami, ami confirmé, groupe reçu...) sans relancer l'appli
+    private val prefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (PrefsManager.isContactsKey(key)) refresh()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Le verrou PIN ne doit pas pouvoir être contourné en ouvrant l'appli depuis une notification
+        val pin = PrefsManager.getAppPin(this)
+        if (!pin.isNullOrBlank() && !AppLock.unlocked) {
+            startActivity(Intent(this, PseudoSetupActivity::class.java))
+            finish()
+            return
+        }
         setContentView(R.layout.activity_contacts)
 
         friendsRecycler = findViewById(R.id.recyclerFriends)
@@ -61,7 +73,7 @@ class ContactsActivity : AppCompatActivity() {
             startActivity(Intent(this, AddFriendActivity::class.java))
         }
 
-        if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 44)
+        requestMissingPermissions()
         findViewById<FloatingActionButton>(R.id.fabAddGroup).setOnClickListener { startActivity(Intent(this, GroupCreateActivity::class.java)) }
         findViewById<TextView>(R.id.buttonSettings).setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         findViewById<EditText>(R.id.searchInput).addTextChangedListener(object: TextWatcher { override fun beforeTextChanged(s: CharSequence?, st:Int,c:Int,a:Int){} override fun onTextChanged(s:CharSequence?,st:Int,b:Int,c:Int){ filterConversations(s?.toString().orEmpty()) } override fun afterTextChanged(e:Editable?){}})
@@ -73,7 +85,34 @@ class ContactsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        PrefsManager.registerListener(this, prefsListener)
         refresh()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        PrefsManager.unregisterListener(this, prefsListener)
+    }
+
+    /**
+     * Demandé ici (et plus dans l'écran de pseudo, qui se fermait aussitôt) : sans RECEIVE_SMS
+     * l'appli ne reçoit aucun message, sans SEND_SMS elle ne peut rien envoyer.
+     */
+    private fun requestMissingPermissions() {
+        val wanted = mutableListOf(android.Manifest.permission.SEND_SMS, android.Manifest.permission.RECEIVE_SMS)
+        if (android.os.Build.VERSION.SDK_INT >= 33) wanted.add(android.Manifest.permission.POST_NOTIFICATIONS)
+        val missing = wanted.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) androidx.core.app.ActivityCompat.requestPermissions(this, missing.toTypedArray(), 100)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != 100) return
+        val smsDenied = permissions.indices.any { i ->
+            (permissions[i] == android.Manifest.permission.SEND_SMS || permissions[i] == android.Manifest.permission.RECEIVE_SMS) &&
+                grantResults.getOrNull(i) != PackageManager.PERMISSION_GRANTED
+        }
+        if (smsDenied) Toast.makeText(this, "Sans la permission SMS, BubbleSMS ne peut ni envoyer ni recevoir de messages.", Toast.LENGTH_LONG).show()
     }
 
     private fun loadProfilePicture() {
@@ -120,8 +159,7 @@ class ContactsActivity : AppCompatActivity() {
 
             if (hasSendSmsPermission()) {
                 val myPseudo = PrefsManager.getMyPseudo(this) ?: "Moi"
-                val smsManager = SmsManager.getDefault()
-                smsManager.sendTextMessage(req.phone, null, "BUB::ACC::$myPseudo", null, null)
+                BubbleSms.send(this, req.phone, "BUB::ACC::$myPseudo")
             } else {
                 Toast.makeText(this, "Autorise l'envoi de SMS pour confirmer l'ami", Toast.LENGTH_LONG).show()
             }

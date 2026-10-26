@@ -1,18 +1,13 @@
 package com.bubblesms.app
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.bubblesms.app.data.PrefsManager
 import com.google.android.material.imageview.ShapeableImageView
 
@@ -32,29 +27,15 @@ class PseudoSetupActivity : AppCompatActivity() {
         }
     }
 
-    private val permissions = mutableListOf(
-        Manifest.permission.SEND_SMS,
-        Manifest.permission.RECEIVE_SMS,
-        Manifest.permission.READ_SMS
-    ).apply {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }.toTypedArray()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Si un pseudo existe déjà, on saute directement à la liste des amis
         val existing = PrefsManager.getMyPseudo(this)
         if (existing != null) {
-            requestPermissionsIfNeeded()
             val pin = PrefsManager.getAppPin(this)
-            if (!pin.isNullOrBlank()) {
-                val input = android.widget.EditText(this).apply { inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD; hint = "Code PIN" }
-                androidx.appcompat.app.AlertDialog.Builder(this).setTitle("BubbleSMS verrouillé").setMessage("Entre ton code pour continuer.").setView(input).setCancelable(false).setPositiveButton("Déverrouiller") { _, _ ->
-                    if (input.text.toString() == pin) { startActivity(Intent(this, ContactsActivity::class.java)); finish() } else Toast.makeText(this, "Code incorrect", Toast.LENGTH_SHORT).show()
-                }.show()
+            if (!pin.isNullOrBlank() && !AppLock.unlocked) {
+                askPin(pin)
             } else {
                 startActivity(Intent(this, ContactsActivity::class.java)); finish()
             }
@@ -77,18 +58,39 @@ class PseudoSetupActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             PrefsManager.setMyPseudo(this, pseudo)
-            requestPermissionsIfNeeded()
             startActivity(Intent(this, ContactsActivity::class.java))
             finish()
         }
     }
 
-    private fun requestPermissionsIfNeeded() {
-        val missing = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+    /**
+     * Avant : un mauvais PIN fermait la boîte de dialogue et laissait un écran vide sans
+     * moyen de réessayer (il fallait relancer l'appli). On réaffiche maintenant la demande.
+     */
+    private fun askPin(pin: String) {
+        val input = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = "Code PIN"
         }
-        if (missing.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, missing.toTypedArray(), 100)
-        }
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("BubbleSMS verrouillé")
+            .setMessage("Entre ton code pour continuer.")
+            .setView(input)
+            .setCancelable(false)
+            .setNegativeButton("Quitter") { _, _ -> finish() }
+            .setPositiveButton("Déverrouiller") { _, _ ->
+                if (input.text.toString() == pin) {
+                    AppLock.unlocked = true
+                    startActivity(Intent(this, ContactsActivity::class.java)); finish()
+                } else {
+                    Toast.makeText(this, "Code incorrect", Toast.LENGTH_SHORT).show()
+                    askPin(pin)
+                }
+            }.show()
     }
+}
+
+/** Mémorise (tant que le processus vit) que le PIN a été saisi. */
+object AppLock {
+    @Volatile var unlocked = false
 }

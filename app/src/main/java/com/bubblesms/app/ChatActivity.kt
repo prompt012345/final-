@@ -39,6 +39,14 @@ class ChatActivity : AppCompatActivity() {
         if (uri != null && PrefsManager.saveChatWallpaper(this, phone, uri) != null) applyWallpaper()
     }
 
+    private var lastCount = 0
+
+    // Se déclenche à chaque écriture des messages de CETTE conversation (message reçu, envoyé,
+    // réaction...) : l'écran se met à jour tout seul, sans avoir à quitter/rouvrir le chat.
+    private val prefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == PrefsManager.messagesKey(phone)) loadMessages()
+    }
+
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val incomingPhone = intent.getStringExtra(EXTRA_PHONE) ?: return
@@ -78,20 +86,21 @@ class ChatActivity : AppCompatActivity() {
         input.addTextChangedListener(object: TextWatcher { override fun beforeTextChanged(s: CharSequence?, st:Int,c:Int,a:Int){} override fun onTextChanged(s: CharSequence?,st:Int,b:Int,c:Int){ PrefsManager.setDraft(this@ChatActivity,phone,s?.toString().orEmpty()) } override fun afterTextChanged(e:Editable?){}})
         findViewById<ImageButton>(R.id.buttonSend).setOnClickListener {
             val text=input.text.toString().trim()
-            if(text.isNotEmpty()){ sendText(text); input.setText(""); PrefsManager.setDraft(this,phone,"") }
+            if(text.isNotEmpty() && sendText(text)){ input.setText(""); PrefsManager.setDraft(this,phone,"") }
         }
         applyWallpaper()
         loadMessages()
     }
 
-    private fun sendText(text:String){
-        if(PrefsManager.isBlocked(this,phone)){ Toast.makeText(this,"Utilisateur bloqué",Toast.LENGTH_SHORT).show(); return }
-        if(ContextCompat.checkSelfPermission(this,android.Manifest.permission.SEND_SMS)!=PackageManager.PERMISSION_GRANTED){ Toast.makeText(this,"Autorise l'envoi de SMS",Toast.LENGTH_LONG).show(); return }
+    private fun sendText(text:String): Boolean {
+        if(PrefsManager.isBlocked(this,phone)){ Toast.makeText(this,"Utilisateur bloqué",Toast.LENGTH_SHORT).show(); return false }
+        if(ContextCompat.checkSelfPermission(this,android.Manifest.permission.SEND_SMS)!=PackageManager.PERMISSION_GRANTED){ Toast.makeText(this,"Autorise l'envoi de SMS",Toast.LENGTH_LONG).show(); return false }
         val fullBody="BUB::MSG::${PrefsManager.getMyPseudo(this) ?: "Moi"}::$text"
-        val sms=SmsManager.getDefault(); val parts=sms.divideMessage(fullBody)
-        sms.sendMultipartTextMessage(phone,null,parts,null,null)
+        // SMS de données : livré uniquement à BubbleSMS, n'apparaît pas dans l'appli de messages du système
+        if(!BubbleSms.send(this,phone,fullBody)){ Toast.makeText(this,"Envoi impossible (message trop long ou numéro invalide)",Toast.LENGTH_LONG).show(); return false }
         PrefsManager.addMessage(this,phone,ChatMessage(text,true,System.currentTimeMillis()))
         loadMessages()
+        return true
     }
 
     private fun handleAttachment(uri:Uri){
@@ -147,6 +156,7 @@ class ChatActivity : AppCompatActivity() {
             wallpaper.visibility=View.GONE; wallpaperOverlay.visibility=View.GONE
             findViewById<View>(R.id.chatRoot).setBackgroundColor(Color.parseColor(value.removePrefix("color:")))
         }else{
+            wallpaper.setImageDrawable(null) // sinon ImageView ignore le même URI et garde l'ancienne image
             wallpaper.setImageURI(Uri.fromFile(File(value))); wallpaper.visibility=View.VISIBLE; wallpaperOverlay.visibility=View.VISIBLE
         }
     }
@@ -185,7 +195,22 @@ class ChatActivity : AppCompatActivity() {
         }.show()
     }
 
-    private fun loadMessages(){val messages=PrefsManager.getMessages(this,phone);adapter.update(messages);if(messages.isNotEmpty())recycler.scrollToPosition(messages.size-1)}
-    override fun onResume(){super.onResume();LocalBroadcastManager.getInstance(this).registerReceiver(receiver,IntentFilter(ACTION_NEW_MESSAGE));loadMessages()}
-    override fun onPause(){super.onPause();LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)}
+    private fun loadMessages(){
+        val messages=PrefsManager.getMessages(this,phone)
+        adapter.update(messages)
+        // On ne descend en bas que s'il y a un NOUVEAU message (pas pour une réaction ou une modification)
+        if(messages.size>lastCount) recycler.scrollToPosition(messages.size-1)
+        lastCount=messages.size
+    }
+    override fun onResume(){
+        super.onResume()
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver,IntentFilter(ACTION_NEW_MESSAGE))
+        PrefsManager.registerListener(this,prefsListener)
+        loadMessages()
+    }
+    override fun onPause(){
+        super.onPause()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+        PrefsManager.unregisterListener(this,prefsListener)
+    }
 }

@@ -83,6 +83,8 @@ object LocalCallManager {
                 val id = text.substring(first + 1, second); val idx = text.substring(second + 1, third).toIntOrNull() ?: continue
                 val count = text.substring(third + 1, fourth).toIntOrNull() ?: continue
                 val payload = p.data.copyOfRange(fourth + 1, p.length)
+                // Trames incomplètes (paquets UDP perdus) : sans ce plafond elles s'accumulaient en mémoire
+                if (frames.size > 8 && !frames.containsKey(id)) { frames.clear(); counts.clear() }
                 val arr = frames.getOrPut(id) { arrayOfNulls(count) }; counts[id] = count
                 if (idx in arr.indices) arr[idx] = payload
                 if (arr.all { it != null }) {

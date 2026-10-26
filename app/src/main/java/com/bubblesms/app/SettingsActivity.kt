@@ -49,7 +49,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun pinDialog() {
         val input=EditText(this); input.inputType=InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD; input.hint="4 à 8 chiffres"
         AlertDialog.Builder(this).setTitle("Code PIN de l'application").setMessage("Le PIN sera utilisé par l'écran de verrouillage BubbleSMS.").setView(input).setNegativeButton("Désactiver",{_,_->PrefsManager.setAppPin(this,null)}).setPositiveButton("Enregistrer"){_,_->
-            val p=input.text.toString(); if(p.length in 4..8) PrefsManager.setAppPin(this,p) else Toast.makeText(this,"PIN invalide",Toast.LENGTH_SHORT).show()
+            val p=input.text.toString(); if(p.length in 4..8){ PrefsManager.setAppPin(this,p); AppLock.unlocked=true } else Toast.makeText(this,"PIN invalide",Toast.LENGTH_SHORT).show()
         }.show()
     }
 }

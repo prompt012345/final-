@@ -15,7 +15,11 @@ class ScheduledSmsReceiver : BroadcastReceiver() {
         val text = intent.getStringExtra("text") ?: return
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) return
         val body = "BUB::MSG::${PrefsManager.getMyPseudo(context) ?: "Moi"}::$text"
-        SmsManager.getDefault().sendTextMessage(phone, null, body, null, null)
-        PrefsManager.addMessage(context, phone, ChatMessage(text, true, System.currentTimeMillis()))
+        if (PrefsManager.isBlocked(context, phone)) return
+        // SMS de données (même transport que les messages normaux) ; on n'enregistre le message
+        // dans la conversation que si l'envoi est bien parti.
+        if (BubbleSms.send(context, phone, body)) {
+            PrefsManager.addMessage(context, phone, ChatMessage(text, true, System.currentTimeMillis()))
+        }
     }
 }

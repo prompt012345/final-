@@ -35,11 +35,19 @@ class AddFriendActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val myPseudo = PrefsManager.getMyPseudo(this) ?: "Moi"
-            PrefsManager.upsertFriend(this, Friend(phone, pseudo, confirmed = false))
+            if (PrefsManager.normalizePhone(phone).length < 6) {
+                Toast.makeText(this, "Numéro invalide", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
 
-            val smsManager = SmsManager.getDefault()
-            smsManager.sendTextMessage(phone, null, "BUB::REQ::$myPseudo", null, null)
+            val myPseudo = PrefsManager.getMyPseudo(this) ?: "Moi"
+            // Avant : ré-ajouter un ami déjà confirmé le repassait "en attente".
+            val alreadyConfirmed = PrefsManager.findFriend(this, phone)?.confirmed == true
+            if (!BubbleSms.send(this, phone, "BUB::REQ::$myPseudo")) {
+                Toast.makeText(this, "Envoi impossible : vérifie le numéro", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            PrefsManager.upsertFriend(this, Friend(phone, BubbleSms.clean(pseudo), confirmed = alreadyConfirmed))
 
             Toast.makeText(this, "Demande envoyée à $pseudo", Toast.LENGTH_SHORT).show()
             finish()

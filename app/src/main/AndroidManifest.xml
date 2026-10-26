@@ -11,7 +11,6 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -56,8 +55,15 @@
             android:name=".SmsReceiver"
             android:exported="true"
             android:permission="android.permission.BROADCAST_SMS">
+            <!-- Ancien transport (SMS texte) : gardé pour compatibilité avec les anciennes versions -->
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+            <!-- Nouveau transport : SMS de données sur le port BubbleSMS (6392, voir BubbleSms.kt).
+                 Ces messages ne sont PAS livrés à l'appli de messages du système. -->
+            <intent-filter>
+                <action android:name="android.intent.action.DATA_SMS_RECEIVED" />
+                <data android:scheme="sms" android:host="*" android:port="6392" />
             </intent-filter>
         </receiver>
     </application>

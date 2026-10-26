@@ -73,17 +73,26 @@ class CallActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQ && grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) startMedia()
+        if (requestCode == REQ && grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+            if (selectedIps.isEmpty()) Toast.makeText(this, "Sélectionne au moins un appareil du même réseau Wi‑Fi.", Toast.LENGTH_LONG).show() else startMedia()
+        }
     }
 
     private fun startMedia() {
+        try {
+            LocalCallManager.start(selectedIps, { _, bytes ->
+                val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@start
+                runOnUiThread { remoteImage.setImageBitmap(bmp); remoteImage.visibility = View.VISIBLE }
+            }, { _, _ -> }, { })
+        } catch (t: Throwable) {
+            // Port déjà utilisé ou réseau indisponible : avant, ça faisait planter l'appli
+            LocalCallManager.stop()
+            Toast.makeText(this, "Impossible de démarrer l'appel local (port occupé ou Wi‑Fi indisponible)", Toast.LENGTH_LONG).show()
+            return
+        }
         mediaRunning.set(true)
         state.text = "● Appel local actif • ${selectedIps.size} appareil(s)"
         findViewById<Button>(R.id.callConnect).text = "Appel en cours"
-        LocalCallManager.start(selectedIps, { _, bytes ->
-            val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@start
-            runOnUiThread { remoteImage.setImageBitmap(bmp); remoteImage.visibility = View.VISIBLE }
-        }, { _, _ -> }, { })
         startCamera(); startAudio()
     }
 

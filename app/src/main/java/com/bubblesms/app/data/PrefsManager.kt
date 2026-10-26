@@ -69,7 +69,10 @@ object PrefsManager {
     fun getMyPseudo(ctx: Context): String? = prefs(ctx).getString(KEY_PSEUDO, null)
 
     fun setMyPseudo(ctx: Context, pseudo: String) {
-        prefs(ctx).edit().putString(KEY_PSEUDO, pseudo).apply()
+        // "::" et "|" sont des séparateurs du protocole SMS : un pseudo qui les contenait
+        // cassait la lecture des messages côté destinataire.
+        val clean = pseudo.replace("::", " ").replace("|", " ").trim().ifBlank { "Moi" }
+        prefs(ctx).edit().putString(KEY_PSEUDO, clean).apply()
     }
 
     /**
@@ -190,20 +193,31 @@ object PrefsManager {
         return list
     }
 
-    fun addMessage(ctx: Context, phone: String, message: ChatMessage) {
-        val key = KEY_MSG_PREFIX + normalizePhone(phone)
-        val list = getMessages(ctx, phone)
-        list.add(message)
+    /** Écrit toute la liste (tous les champs, y compris "edited"). */
+    private fun writeMessages(ctx: Context, phone: String, list: List<ChatMessage>) {
         val arr = JSONArray()
         for (m in list) {
-            val o = JSONObject()
-            o.put("body", m.body)
-            o.put("sent", m.isSent)
-            o.put("time", m.timestamp).put("reaction", m.reaction).put("pinned", m.pinned).put("attachmentUri", m.attachmentUri).put("attachmentType", m.attachmentType).put("edited", m.edited)
-            arr.put(o)
+            arr.put(
+                JSONObject()
+                    .put("body", m.body)
+                    .put("sent", m.isSent)
+                    .put("time", m.timestamp)
+                    .put("reaction", m.reaction)
+                    .put("pinned", m.pinned)
+                    .put("attachmentUri", m.attachmentUri)
+                    .put("attachmentType", m.attachmentType)
+                    .put("edited", m.edited)
+            )
         }
-        prefs(ctx).edit().putString(key, arr.toString()).apply()
+        prefs(ctx).edit().putString(KEY_MSG_PREFIX + normalizePhone(phone), arr.toString()).apply()
     }
+
+    fun addMessage(ctx: Context, phone: String, message: ChatMessage) {
+        val list = getMessages(ctx, phone)
+        list.add(message)
+        writeMessages(ctx, phone, list)
+    }
+
     // ---- Fond de conversation ----
     private const val KEY_CHAT_WALLPAPER_PREFIX = "chat_wallpaper_"
 
@@ -349,15 +363,14 @@ object PrefsManager {
         val list = getMessages(ctx, phone)
         if (index !in list.indices) return
         list[index] = message
-        val arr = JSONArray()
-        list.forEach { m -> arr.put(JSONObject().put("body",m.body).put("sent",m.isSent).put("time",m.timestamp).put("reaction",m.reaction).put("pinned",m.pinned).put("attachmentUri",m.attachmentUri).put("attachmentType",m.attachmentType)) }
-        prefs(ctx).edit().putString(KEY_MSG_PREFIX + normalizePhone(phone), arr.toString()).apply()
+        writeMessages(ctx, phone, list)
     }
+
     fun deleteMessage(ctx: Context, phone: String, index: Int) {
-        val list = getMessages(ctx, phone); if (index !in list.indices) return
+        val list = getMessages(ctx, phone)
+        if (index !in list.indices) return
         list.removeAt(index)
-        val arr=JSONArray(); list.forEach { m -> arr.put(JSONObject().put("body",m.body).put("sent",m.isSent).put("time",m.timestamp).put("reaction",m.reaction).put("pinned",m.pinned).put("attachmentUri",m.attachmentUri).put("attachmentType",m.attachmentType)) }
-        prefs(ctx).edit().putString(KEY_MSG_PREFIX + normalizePhone(phone), arr.toString()).apply()
+        writeMessages(ctx, phone, list)
     }
 
     fun deleteGroup(ctx: Context, groupId: String) {
@@ -370,4 +383,17 @@ object PrefsManager {
     }
     fun deleteGroupMessage(ctx: Context, groupId:String,index:Int){val list=getGroupMessages(ctx,groupId);if(index !in list.indices)return;list.removeAt(index);val arr=JSONArray();list.forEach{m->arr.put(JSONObject().put("body",m.body).put("sender",m.senderPseudo).put("sent",m.isSent).put("time",m.timestamp).put("reaction",m.reaction).put("pinned",m.pinned))};prefs(ctx).edit().putString(KEY_GROUP_MSG_PREFIX+groupId,arr.toString()).apply()}
 
+
+    // ---- Mises à jour en direct des écrans ----
+    // Toute écriture (message reçu, envoyé, réaction...) déclenche ce listener sur le thread
+    // principal : les écrans se rafraîchissent seuls, sans quitter/rouvrir la conversation.
+    fun messagesKey(phone: String) = KEY_MSG_PREFIX + normalizePhone(phone)
+    fun groupMessagesKey(groupId: String) = KEY_GROUP_MSG_PREFIX + groupId
+    fun isContactsKey(key: String?) = key == KEY_FRIENDS || key == KEY_REQUESTS || key == KEY_GROUPS
+
+    fun registerListener(ctx: Context, l: android.content.SharedPreferences.OnSharedPreferenceChangeListener) =
+        prefs(ctx).registerOnSharedPreferenceChangeListener(l)
+
+    fun unregisterListener(ctx: Context, l: android.content.SharedPreferences.OnSharedPreferenceChangeListener) =
+        prefs(ctx).unregisterOnSharedPreferenceChangeListener(l)
 }

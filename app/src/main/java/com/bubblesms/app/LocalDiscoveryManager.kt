@@ -45,7 +45,7 @@ object LocalDiscoveryManager {
                     } catch (_: Throwable) {}
                     Thread.sleep(2500)
                 }
-            } catch (_: Throwable) {} finally { try { socket?.close() } catch (_: Throwable) {}; socket = null }
+            } catch (_: Throwable) {} finally { running = false; try { socket?.close() } catch (_: Throwable) {}; socket = null }
         }
     }
 

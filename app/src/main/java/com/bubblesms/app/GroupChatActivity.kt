@@ -17,6 +17,13 @@ class GroupChatActivity : AppCompatActivity() {
     private lateinit var recycler: RecyclerView
     private lateinit var adapter: GroupMessageAdapter
     private var group = com.bubblesms.app.data.Group("", "")
+    private var lastCount = 0
+
+    // Mise à jour en direct : se déclenche dès qu'un message de CE groupe est enregistré.
+    // Avant, ce chat n'écoutait rien : il fallait quitter et rouvrir le groupe pour voir les messages reçus.
+    private val prefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == PrefsManager.groupMessagesKey(groupId)) load()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,11 +45,11 @@ class GroupChatActivity : AppCompatActivity() {
             if (text.isEmpty()) return@setOnClickListener
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) { Toast.makeText(this, "Autorise les SMS pour envoyer", Toast.LENGTH_LONG).show(); return@setOnClickListener }
             val me = PrefsManager.getMyPseudo(this) ?: "Moi"
-            val body = "BUB::GRP::$groupId::${group.name}::$me::$text"
-            val sms = SmsManager.getDefault()
-            group.members.filter { !PrefsManager.isBlocked(this, it.phone) }.forEach { member ->
-                sms.sendMultipartTextMessage(member.phone, null, sms.divideMessage(body), null, null)
-            }
+            val body = "BUB::GRP::$groupId::${BubbleSms.clean(group.name)}::$me::$text"
+            val targets = group.members.filter { !PrefsManager.isBlocked(this, it.phone) }
+            // On ne compte le message comme envoyé que si au moins un SMS est bien parti
+            val okCount = targets.count { BubbleSms.send(this, it.phone, body) }
+            if (targets.isNotEmpty() && okCount == 0) { Toast.makeText(this, "Envoi impossible", Toast.LENGTH_LONG).show(); return@setOnClickListener }
             PrefsManager.addGroupMessage(this, GroupMessage(groupId, text, me, true, System.currentTimeMillis()))
             input.setText(""); load()
         }
@@ -59,20 +66,26 @@ class GroupChatActivity : AppCompatActivity() {
         }}.show()
     }
 
-    private fun load() { val m=PrefsManager.getGroupMessages(this,groupId); adapter.update(m); if(m.isNotEmpty()) recycler.scrollToPosition(m.size-1) }
+    private fun load() {
+        val m=PrefsManager.getGroupMessages(this,groupId)
+        adapter.update(m)
+        if(m.size>lastCount) recycler.scrollToPosition(m.size-1)
+        lastCount=m.size
+    }
+    override fun onResume() { super.onResume(); PrefsManager.registerListener(this,prefsListener); load() }
+    override fun onPause() { super.onPause(); PrefsManager.unregisterListener(this,prefsListener) }
     private fun syncGroup(){
         if(ContextCompat.checkSelfPermission(this,android.Manifest.permission.SEND_SMS)!=PackageManager.PERMISSION_GRANTED)return
         val me=PrefsManager.getMyPseudo(this) ?: "Moi"
-        val sms=SmsManager.getDefault()
         // Comme à la création : chaque destinataire reçoit la liste des AUTRES membres,
         // jamais son propre numéro (sinon il s'enverrait des SMS à lui-même par la suite).
         group.members.forEach { recipient ->
             val others = group.members.filter {
                 PrefsManager.normalizePhone(it.phone) != PrefsManager.normalizePhone(recipient.phone)
             }
-            val data = others.joinToString("|"){ "${it.phone}~${it.pseudo.replace("|"," ")}" }
-            val body = "BUB::GNEW::${group.id}::${group.name.replace("::"," ")}::$me::$data"
-            sms.sendMultipartTextMessage(recipient.phone, null, sms.divideMessage(body), null, null)
+            val data = others.joinToString("|"){ "${it.phone}~${BubbleSms.clean(it.pseudo)}" }
+            val body = "BUB::GNEW::${group.id}::${BubbleSms.clean(group.name)}::$me::$data"
+            BubbleSms.send(this, recipient.phone, body)
         }
     }
 

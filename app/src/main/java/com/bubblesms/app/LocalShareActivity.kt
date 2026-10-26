@@ -53,10 +53,12 @@ class LocalShareActivity : AppCompatActivity() {
     private fun startReceiver() {
         LocalNetworkManager.startReceiver({ name, mime, bytes ->
             runOnUiThread {
-                val file = File(filesDir, "received_$name")
+                // Le nom vient du réseau : on ne garde que le nom de fichier (pas de "../")
+                val safeName = File(name).name.ifBlank { "fichier" }
+                val file = File(filesDir, "received_$safeName")
                 file.outputStream().use { it.write(bytes) }
-                status.text = "✓ Reçu : $name"
-                Toast.makeText(this, "Fichier reçu : $name", Toast.LENGTH_LONG).show()
+                status.text = "✓ Reçu : $safeName"
+                Toast.makeText(this, "Fichier reçu : $safeName", Toast.LENGTH_LONG).show()
             }
         }) { runOnUiThread { status.text = "● Mode local actif" } }
     }
