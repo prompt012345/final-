@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090909">
+  <title>Territory — Prototype 1.1</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Territory accueil">
+        <span class="brand-mark">T</span>
+        <span>TERRITORY<span class="brand-version">1.1</span></span>
+      </a>
+      <div class="top-status"><span class="status-dot"></span> APERÇU VISUEL</div>
+      <button class="avatar" aria-label="Profil">U</button>
+    </header>
+
+    <section class="dashboard">
+      <aside class="left-panel">
+        <div class="eyebrow">TABLEAU DE BORD</div>
+        <h1>Le monde<br><span>à conquérir.</span></h1>
+        <p class="intro">Explore les territoires, découvre les communes et construis ton domaine.</p>
+
+        <div class="section-label">APERÇU DU COMPTE</div>
+        <div class="stat-card">
+          <div class="stat-icon">⌖</div>
+          <div><span class="stat-caption">TERRITOIRES</span><strong>—</strong><small>Pas encore de territoire</small></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">◎</div>
+          <div><span class="stat-caption">SURFACE TOTALE</span><strong>— km²</strong><small>En attente de données</small></div>
+        </div>
+
+        <div class="section-label explore-label">EXPLORATION</div>
+        <div class="location-card">
+          <div class="location-pin">⌖</div>
+          <div class="location-copy"><strong>France</strong><span>Vue de démonstration</span></div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="hint"><span>i</span> Les communes et les parcelles seront intégrées dans une prochaine version.</div>
+      </aside>
+
+      <section class="globe-stage" aria-label="Globe terrestre de démonstration">
+        <div class="globe-heading">
+          <div><span class="live-kicker">CARTE MONDIALE</span><h2>Vue globale</h2></div>
+          <div class="zoom-label">3D <span>•</span> GLOBE</div>
+        </div>
+        <div id="globe"></div>
+        <div class="globe-vignette"></div>
+        <div class="globe-footer">
+          <div><span class="legend-dot"></span> Monde</div>
+          <span>DONNÉES DE DÉMONSTRATION</span>
+        </div>
+        <div class="side-tools"><div>＋</div><div>－</div><div class="tool-divider"></div><div>◎</div></div>
+      </section>
+
+      <aside class="right-panel">
+        <div class="section-label">TERRITOIRE SÉLECTIONNÉ</div>
+        <div class="empty-preview">
+          <div class="empty-symbol">⌖</div>
+          <strong>Aucun territoire</strong>
+          <p>Les informations d'une commune apparaîtront ici.</p>
+        </div>
+        <div class="section-label info-label">APERÇU 1.1</div>
+        <div class="feature-row"><span class="feature-icon">◉</span><div><strong>Globe 3D</strong><small>Visualisation du monde</small></div></div>
+        <div class="feature-row"><span class="feature-icon">▦</span><div><strong>Parcelles communales</strong><small>Interface en préparation</small></div></div>
+        <div class="feature-row"><span class="feature-icon">⌖</span><div><strong>Exploration</strong><small>Fonctionnalités désactivées</small></div></div>
+      </aside>
+    </section>
+    <footer class="bottom-bar"><span> TERRITORY / 1.1</span><span>INTERFACE EN CONSTRUCTION</span><span>© 2026</span></footer>
+  </main>
+  <script src="https://unpkg.com/globe.gl"></script>
+  <script src="https://unpkg.com/topojson-client@3"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
